@@ -42,7 +42,7 @@
 
 - name: Write back `ucsc_genome_browser_setting_*` variables
   ansible.builtin.set_fact:
-    "{{ item.key }}": "{{ item.value }}"
+    "ucsc_genome_browser_setting_{{ item.key }}": "{{ item.value }}"
   loop: "{{ ucsc_genome_browser_settings | dict2items }}"
   loop_control:
     label: "{{ item.key }}"
