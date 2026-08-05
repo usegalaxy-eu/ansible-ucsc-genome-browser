@@ -52,4 +52,4 @@
     var:  "ucsc_genome_browser_setting_{{ item.key }}"
   loop: "{{ ucsc_genome_browser_settings | dict2items }}"
   loop_control:
-    label: "{{ item.key }}"
+    label: "ucsc_genome_browser_setting_{{ item.key }}"
