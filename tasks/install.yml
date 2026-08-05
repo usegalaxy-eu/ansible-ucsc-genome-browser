@@ -44,3 +44,23 @@
       ansible.builtin.fail:
           msg: "UCSC Genome Browser installation failed."
       when: ucsc_genome_browser_installation_result.rc != 0
+
+- name: Check if offline mode is active
+  ansible.builtin.shell:
+    cmd: "grep -q '^#slow-db\\.' {{ ucsc_genome_browser_apache_dir }}/cgi-bin/hg.conf"
+    # rc=0 if offline mode is active, rc=1 if offline mode is NOT active
+  register: ucsc_genome_browser_offline_mode_check
+  failed_when: false
+  changed_when: false
+
+- name: Enable offline mode
+  when: ucsc_genome_browser_offline_mode
+  ansible.builtin.shell:
+    cmd: "bash {{ ucsc_genome_browser_install_script }} -b offline"
+  changed_when: ucsc_genome_browser_offline_mode_check.rc != 0
+
+- name: Enable on-the-fly mode
+  when: not ucsc_genome_browser_offline_mode
+  ansible.builtin.shell:
+    cmd: "bash {{ ucsc_genome_browser_install_script }} -b online"
+  changed_when: ucsc_genome_browser_offline_mode_check.rc == 0
