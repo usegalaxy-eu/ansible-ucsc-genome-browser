@@ -4,7 +4,7 @@
     alias: ucsc_genome_browser_setting
     var: ucsc_genome_browser_settings
 
-- name: Patch global settings
+- name: Patch global settings in UCSC Genome Browser installation script
   register: ucsc_genome_browser_replace_result
   failed_when: not ucsc_genome_browser_replace_result.changed
   loop: "{{ ucsc_genome_browser_settings | dict2items }}"
@@ -15,3 +15,26 @@
     before: "# ---- END GLOBAL DEFAULT SETTINGS ----"
     regexp: "^\\s*({{ item.key }})=(.+)[^\\S\r\n]*$"
     replace: "{{ item.key }}={{ item.value }}"
+
+- name: Read patched UCSC Genome Browser installation script
+  ansible.builtin.slurp:
+    src: "{{ ucsc_genome_browser_install_script }}"
+  register: ucsc_genome_browser_install_script_patched_content
+
+- name: Parse global settings back into dictionary `ucsc_genome_browser_settings`
+  # includes all settings, even those that were not patched (i.e. still have default values)
+  vars:
+    raw_text: "{{ ucsc_genome_browser_install_script_patched_content.content | b64decode }}"
+    section_regex: "(?s)# ---- GLOBAL DEFAULT SETTINGS ----(.*?)# ---- END GLOBAL DEFAULT SETTINGS ----"
+    settings_section: "{{ raw_text | regex_search(section_regex, '\\1') | first | default('') }}"
+    # Find all active key=value pairs within that section
+    key_value_pairs: "{{ settings_section | regex_findall('^\\s*([^#\\s=]+)\\s*=\\s*(.+)$', multiline=True) }}"
+  ansible.builtin.set_fact:
+    ucsc_genome_browser_settings: "{{ dict(key_value_pairs) }}"
+
+- name: Write back `ucsc_genome_browser_setting_*` variables
+  ansible.builtin.set_fact:
+    "{{ item.key }}": "{{ item.value }}"
+  loop: "{{ ucsc_genome_browser_settings | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
