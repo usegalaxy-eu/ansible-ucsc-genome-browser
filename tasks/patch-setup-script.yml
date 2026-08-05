@@ -21,6 +21,10 @@
     src: "{{ ucsc_genome_browser_install_script }}"
   register: ucsc_genome_browser_install_script_patched_content
 
+- name: Debug `ucsc_genome_browser_settings`
+  ansible.builtin.debug:
+    var: ucsc_genome_browser_settings
+
 - name: Parse global settings back into dictionary `ucsc_genome_browser_settings`
   # includes all settings, even those that were not patched (i.e. still have default values)
   vars:
@@ -32,9 +36,20 @@
   ansible.builtin.set_fact:
     ucsc_genome_browser_settings: "{{ dict(key_value_pairs) }}"
 
+- name: Debug `ucsc_genome_browser_settings`
+  ansible.builtin.debug:
+    var: ucsc_genome_browser_settings
+
 - name: Write back `ucsc_genome_browser_setting_*` variables
   ansible.builtin.set_fact:
     "{{ item.key }}": "{{ item.value }}"
+  loop: "{{ ucsc_genome_browser_settings | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Debug individual `ucsc_genome_browser_setting_*` variables
+  ansible.builtin.debug:
+    msg: "{{ item.key }} = {{ item.value }}"
   loop: "{{ ucsc_genome_browser_settings | dict2items }}"
   loop_control:
     label: "{{ item.key }}"
