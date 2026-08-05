@@ -47,7 +47,7 @@
 
 - name: Check if offline mode is active
   ansible.builtin.shell:
-    cmd: "grep -q '^#slow-db\\.' {{ ucsc_genome_browser_apache_dir }}/cgi-bin/hg.conf"
+    cmd: "grep -q '^#slow-db\\.' {{ ucsc_genome_browser_setting_APACHEDIR }}/cgi-bin/hg.conf"
     # rc=0 if offline mode is active, rc=1 if offline mode is NOT active
   register: ucsc_genome_browser_offline_mode_check
   failed_when: false
