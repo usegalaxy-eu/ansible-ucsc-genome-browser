@@ -1,0 +1,18 @@
+---
+- name: Install UCSC Genome Browser trash cleanup units
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - ucsc-genome-browser-clean.service
+    - ucsc-genome-browser-clean.timer
+
+- name: Enable UCSC Genome Browser trash cleanup timer
+  ansible.builtin.systemd_service:
+    name: ucsc-genome-browser-clean.timer
+    enabled: "{{ ucsc_genome_browser_clean_enabled }}"
+    state: "{{ 'started' if ucsc_genome_browser_clean_enabled else 'stopped' }}"
+    daemon_reload: true

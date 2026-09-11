@@ -1,0 +1,9 @@
+---
+- name: Install UCSC Genome Browser setup script
+  ansible.builtin.copy:
+    src: "{{ ucsc_genome_browser_install_script }}"
+    dest: "{{ ucsc_genome_browser_setup_script_path }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0700"

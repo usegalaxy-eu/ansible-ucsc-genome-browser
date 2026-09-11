@@ -1,0 +1,6 @@
+[Unit]
+Description=Clean UCSC Genome Browser trash directory
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash {{ ucsc_genome_browser_setup_script_path }} -b clean

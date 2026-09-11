@@ -12,3 +12,5 @@ ucsc_genome_browser_setting_CGIBINDIR: "/usr/local/apache/cgi-bin/"
 ucsc_genome_browser_hg_conf_settings:
   # define at least one setting to ensure hg.conf is patched during testing
   login.https: "on"  # the setup script sets this to "off", which breaks hgLogin over https
+
+ucsc_genome_browser_setup_script_path: /usr/local/apache/browserSetup.sh
