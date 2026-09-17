@@ -21,6 +21,11 @@ ucsc_genome_browser_setup_script_checksum: "{{ undef() }}"  # e.g. "sha256:e47cd
 ucsc_genome_browser_offline_mode: false
 
 ucsc_genome_browser_assemblies: all  # e.g. ["mm10", "wuhCor1"]
+
+ucsc_genome_browser_setup_script_path: /usr/local/apache/browserSetup.sh
+
+ucsc_genome_browser_clean_enabled: true
+ucsc_genome_browser_clean_schedule: daily
 ```
 
 Use `ucsc_genome_browser_setup_script` to pin the installer script to a
@@ -38,9 +43,17 @@ The genome assemblies to install can be customized using the
 `ucsc_genome_browser_assemblies` variable. By default, all available
 assemblies are installed.
 
+The installer script is kept at `ucsc_genome_browser_setup_script_path` so that
+scheduled jobs can use it after the role has finished.
+
+A `systemd` timer removes old files from the trash directory by running the
+installer script's `clean` command. Set `ucsc_genome_browser_clean_enabled` to
+`false` to disable it, and `ucsc_genome_browser_clean_schedule` to any
+`OnCalendar` value to change how often it runs.
+
 ## Dependencies
 
-None.
+The `community.general` collection.
 
 ## Example Playbook
 
