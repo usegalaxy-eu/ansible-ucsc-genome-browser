@@ -1,0 +1,9 @@
+[Unit]
+Description=Periodically clean UCSC Genome Browser trash directory
+
+[Timer]
+OnCalendar={{ ucsc_genome_browser_clean_schedule }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

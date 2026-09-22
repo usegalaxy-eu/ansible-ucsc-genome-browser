@@ -16,6 +16,10 @@
       ansible.builtin.include_tasks:
         file: patch-setup-script.yml
 
+    - name: Include tasks that install the UCSC Genome Browser setup script
+      ansible.builtin.include_tasks:
+        file: install-setup-script.yml
+
     - name: Include tasks that install the UCSC Genome Browser
       ansible.builtin.include_tasks:
           file: install.yml
@@ -23,6 +27,10 @@
     - name: Include tasks that configure the UCSC Genome Browser
       ansible.builtin.include_tasks:
         file: configure.yml
+
+    - name: Include tasks that set up trash cleanup
+      ansible.builtin.include_tasks:
+        file: clean.yml
 
     - name: Include tasks that download genome assemblies
       ansible.builtin.include_tasks:

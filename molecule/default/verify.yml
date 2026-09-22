@@ -47,3 +47,42 @@
             that: "hg_conf_decoded is search('^{{ item.key }}={{ item.value }}$', multiline=True)"
             fail_msg: "One or more hg.conf settings are missing or incorrect."
           loop: "{{ ucsc_genome_browser_hg_conf_settings | dict2items }}"
+
+    - name: Ensure the trash cleaner timer is enabled and running
+      block:
+        - name: Get trash cleaner timer state
+          ansible.builtin.systemd_service:
+            name: ucsc-genome-browser-trash-cleaner.timer
+          register: clean_timer
+
+        - name: Assert the trash cleaner timer is enabled and running
+          ansible.builtin.assert:
+            that:
+              - clean_timer.status.UnitFileState == "enabled"
+              - clean_timer.status.ActiveState == "active"
+            fail_msg: "The trash cleaner timer is not enabled and active."
+
+    - name: Ensure the trash cleaner removes stale files
+      become: true
+      block:
+        - name: Create a stale file in the trash directory
+          ansible.builtin.file:
+            path: "{{ ucsc_genome_browser_setting_TRASHDIR }}/molecule-stale-file"
+            state: touch
+            access_time: "202001010000.00"
+            modification_time: "202001010000.00"
+
+        - name: Run the trash cleaner
+          ansible.builtin.systemd_service:
+            name: ucsc-genome-browser-trash-cleaner.service
+            state: started
+
+        - name: Stat the stale file
+          ansible.builtin.stat:
+            path: "{{ ucsc_genome_browser_setting_TRASHDIR }}/molecule-stale-file"
+          register: stale_file_stat
+
+        - name: Assert the stale file was removed
+          ansible.builtin.assert:
+            that: not stale_file_stat.stat.exists
+            fail_msg: "The trash cleaner did not remove a file older than one day."
