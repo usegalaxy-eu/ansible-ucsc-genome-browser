@@ -17,13 +17,15 @@ Ansible variables are listed below (except for
 ```yaml
 ucsc_genome_browser_setup_script: https://raw.githubusercontent.com/ucscGenomeBrowser/kent/master/src/product/installer/browserSetup.sh
 ucsc_genome_browser_setup_script_checksum: "{{ undef() }}"  # e.g. "sha256:e47cd21c479a53d3157a4cd54f867dc26420d5f825d0b6954257e3ee3054882d"
+ucsc_genome_browser_setup_script_path: /usr/local/bin/browserSetup.sh  # install and execute setup script from this path
 
 ucsc_genome_browser_offline_mode: false
+# Offline mode: data is loaded only from the local Mysql database and file system.
+# On-the-fly mode: data is loaded from UCSC when not present locally.
 
 ucsc_genome_browser_assemblies: all  # e.g. ["mm10", "wuhCor1"]
 
-ucsc_genome_browser_setup_script_path: /usr/local/apache/browserSetup.sh
-
+# periodic trash directory cleanups are managed by a systemd timer
 ucsc_genome_browser_clean_enabled: true
 ucsc_genome_browser_clean_schedule: daily
 ```
@@ -31,7 +33,10 @@ ucsc_genome_browser_clean_schedule: daily
 Use `ucsc_genome_browser_setup_script` to pin the installer script to a
 specific version or to run a custom installer script. The variable
 `ucsc_genome_browser_setup_script_checksum` can be used to verify the
-integrity of the script; leave it blank to skip the verification.
+integrity of the script; leave it blank to skip the verification. The
+setup script is installed to `ucsc_genome_browser_setup_script_path`. After
+the setup is complete, the script is still called on a schedule to execute
+recurrent upkeep jobs.
 
 The UCSC Genome Browser can operate in two modes: online and offline. In
 online mode, data is loaded from UCSC when not present locally. In offline
@@ -43,12 +48,9 @@ The genome assemblies to install can be customized using the
 `ucsc_genome_browser_assemblies` variable. By default, all available
 assemblies are installed.
 
-The installer script is kept at `ucsc_genome_browser_setup_script_path` so that
-scheduled jobs can use it after the role has finished.
-
 A `systemd` timer removes old files from the trash directory by running the
 installer script's `clean` command. Set `ucsc_genome_browser_clean_enabled` to
-`false` to disable it, and `ucsc_genome_browser_clean_schedule` to any
+`false` to disable it, and `ucsc_genome_browser_clean_schedule` to any valid
 `OnCalendar` value to change how often it runs.
 
 ## Dependencies
