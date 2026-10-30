@@ -1,5 +1,5 @@
 # Serve the UCSC Genome Browser API at the same short URLs as the public
-# website, see https://genome.ucsc.edu/goldenPath/help/mirror.html, section
+# website, see https://genome.ucsc.edu/goldenPath/help/mirrorManual.html, section
 # "Make the API work in the same way as on the public website".
 RewriteEngine on
 RewriteRule "^/list/(.*)$" "/cgi-bin/hubApi/list/$1" [L,PT]
@@ -8,8 +8,8 @@ RewriteRule "^/findGenome(.*)$" "/cgi-bin/hubApi/findGenome$1" [L,PT]
 RewriteRule "^/search$" "/cgi-bin/hubApi/search?%{QUERY_STRING}" [L,PT]
 RewriteCond %{HTTP_HOST} ^api\.
 RewriteRule "^/cgi-bin/hubApi(.*)$" "/cgi-bin/hubApi$1" [L,PT]
-RewriteCond %{HTTP_HOST} ^api\.
-RewriteRule "^/(.*)$" "/goldenPath/help/api.html" [L]
+RewriteCond %{HTTP_HOST} ^api\.(.+)$
+RewriteRule "^/(.*)$" "%{REQUEST_SCHEME}://%1/goldenPath/help/api.html" [L,R=302]
 AllowEncodedSlashes NoDecode
 <Location "/cgi-bin/hubApi">
     Header set Access-Control-Allow-Origin "*"

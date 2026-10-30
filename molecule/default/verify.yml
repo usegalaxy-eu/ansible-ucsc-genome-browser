@@ -85,9 +85,15 @@
             url: http://localhost/nonexistent-api-path
             headers:
               Host: api.genome-browser
-            return_content: true
             follow_redirects: none
+            status_code: 302
           register: api_subdomain_catch_all_response
+
+        - name: Query the API documentation
+          ansible.builtin.uri:
+            url: http://localhost/goldenPath/help/api.html
+            return_content: true
+          register: api_documentation_response
 
         - name: Query the API through its CGI program on API subdomain
           ansible.builtin.uri:
@@ -109,8 +115,9 @@
         - name: Assert the API subdomain serves the API and its documentation
           ansible.builtin.assert:
             that:
-              - api_subdomain_catch_all_response.status == 200
-              - "'hubApi' in api_subdomain_catch_all_response.content"
+              - api_subdomain_catch_all_response.location == "http://genome-browser/goldenPath/help/api.html"
+              - "'hubApi' in api_documentation_response.content"
+              - "'error occurred' not in api_documentation_response.content"
               - api_subdomain_cgi_response.status == 200
               - api_subdomain_short_url_response.status == 200
               - api_subdomain_short_url_response.json.ucscGenomes == api_cgi_response.json.ucscGenomes
