@@ -38,6 +38,17 @@ ucsc_genome_browser_clean_schedule: daily
 
 # short API URLs, e.g. /list/ucscGenomes
 ucsc_genome_browser_api_short_urls_enabled: true
+
+# rate-limit hyperactive clients (bots/scrapers) with the bottleneck server
+ucsc_genome_browser_bottleneck_enabled: false
+ucsc_genome_browser_bottleneck_version: v505_branch.1  # kent git ref
+ucsc_genome_browser_bottleneck_path: /usr/local/bin/bottleneck
+ucsc_genome_browser_bottleneck_host: localhost
+ucsc_genome_browser_bottleneck_port: 17776
+ucsc_genome_browser_bottleneck_subnets: ["127.0.0.1/32", "::1/128"]  # allowed to connect
+ucsc_genome_browser_bottleneck_penalty: 75  # ms per access
+ucsc_genome_browser_bottleneck_recovery: 10  # ms recovered per idle second
+ucsc_genome_browser_bottleneck_except: []  # never throttled
 ```
 
 Use `ucsc_genome_browser_setup_script` to pin the installer script to a
@@ -91,6 +102,13 @@ short URLs for the API via Apache rewrite rules, so that the API endpoints
 `/list`, `/getData`, `/findGenome` and `/search` are also served at `/` and
 cross-origin requests allow. For example, with short URLs enabled,
 `/list/ucscGenomes` answers the same as `/cgi-bin/hubApi/list/ucscGenomes`.
+
+Set `ucsc_genome_browser_bottleneck_enabled` to `true` to rate-limit hyperactive
+clients (bots, scrapers) with `bottleneck`, a daemon that the CGIs ask how long
+to delay each client. UCSC publishes no binary, so the role builds it from the
+kent source at `ucsc_genome_browser_bottleneck_version` and runs it as a
+`systemd` service. Behind a reverse proxy, Apache must see the real client IPs
+(e.g. via `mod_remoteip`).
 
 ## Dependencies
 

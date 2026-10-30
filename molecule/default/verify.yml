@@ -183,3 +183,54 @@
               - data_update_timer.status.UnitFileState == "disabled"
               - data_update_timer.status.ActiveState == "inactive"
             fail_msg: "The genome assembly update timer should be disabled by default."
+
+    - name: Ensure the bottleneck server is running and throttles clients
+      become: true
+      block:
+        - name: Get bottleneck service state
+          ansible.builtin.systemd_service:
+            name: ucsc-genome-browser-bottleneck.service
+          register: bottleneck_service
+
+        - name: Assert the bottleneck service is enabled and running
+          ansible.builtin.assert:
+            that:
+              - bottleneck_service.status.UnitFileState == "enabled"
+              - bottleneck_service.status.ActiveState == "active"
+            fail_msg: "The bottleneck service is not enabled and active."
+
+        - name: Query the bottleneck server repeatedly for the same client
+          ansible.builtin.command:
+            cmd: "{{ ucsc_genome_browser_bottleneck_path | default('/usr/local/bin/bottleneck') }} query 198.51.100.1 3"
+          changed_when: false
+          register: bottleneck_query
+
+        - name: Assert the bottleneck server delays repeated requests
+          ansible.builtin.assert:
+            that: bottleneck_query.stdout_lines[-1] is search('^[1-9][0-9]* millisecond delay recommended$')
+            fail_msg: "The bottleneck server does not delay repeated requests."
+
+        - name: Read hg.conf file
+          ansible.builtin.slurp:
+            src: "{{ ucsc_genome_browser_setting_CGIBINDIR }}/hg.conf"
+          register: hg_conf_slurp
+
+        - name: Assert hg.conf points the CGIs at the bottleneck server
+          ansible.builtin.assert:
+            that:
+              - "hg_conf_slurp.content | b64decode is search('^bottleneck.host=localhost$', multiline=True)"
+              - "hg_conf_slurp.content | b64decode is search('^bottleneck.port=17776$', multiline=True)"
+              - "hg_conf_slurp.content | b64decode is search('^bottleneck.except=192.0.2.1 192.0.2.2$', multiline=True)"
+            fail_msg: "hg.conf does not point the CGIs at the bottleneck server."
+
+        - name: Request a page from a CGI program that consults the bottleneck server
+          ansible.builtin.uri:
+            url: http://localhost/cgi-bin/hubApi/list/ucscGenomes
+          register: bottleneck_cgi_response
+
+        - name: Assert the CGI program reaches the bottleneck server
+          ansible.builtin.command:
+            cmd: "{{ ucsc_genome_browser_bottleneck_path | default('/usr/local/bin/bottleneck') }} list"
+          changed_when: false
+          register: bottleneck_list
+          failed_when: bottleneck_list.stdout_lines | length < 3

@@ -1,0 +1,13 @@
+[Unit]
+Description=UCSC Genome Browser bottleneck server (throttles hyperactive clients)
+After=network.target
+
+[Service]
+Type=forking
+ExecStart={{ ucsc_genome_browser_bottleneck_path }} start -port={{ ucsc_genome_browser_bottleneck_port }} -penalty={{ ucsc_genome_browser_bottleneck_penalty }} -recovery={{ ucsc_genome_browser_bottleneck_recovery }}{% if ucsc_genome_browser_bottleneck_subnets %} -subnet={{ ucsc_genome_browser_bottleneck_subnets | join(',') }}{% endif %}
+
+DynamicUser=true
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
