@@ -89,12 +89,6 @@
             status_code: 302
           register: api_subdomain_catch_all_response
 
-        - name: Query the API documentation
-          ansible.builtin.uri:
-            url: http://localhost/goldenPath/help/api.html
-            return_content: true
-          register: api_documentation_response
-
         - name: Query the API through its CGI program on API subdomain
           ansible.builtin.uri:
             url: http://localhost/cgi-bin/hubApi/list/ucscGenomes
