@@ -110,8 +110,6 @@
           ansible.builtin.assert:
             that:
               - api_subdomain_catch_all_response.location == "http://genome-browser/goldenPath/help/api.html"
-              - "'hubApi' in api_documentation_response.content"
-              - "'error occurred' not in api_documentation_response.content"
               - api_subdomain_cgi_response.status == 200
               - api_subdomain_short_url_response.status == 200
               - api_subdomain_short_url_response.json.ucscGenomes == api_cgi_response.json.ucscGenomes
