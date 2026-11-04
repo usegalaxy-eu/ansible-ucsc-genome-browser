@@ -58,7 +58,7 @@ Install Vagrant and libvirt.
 curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(. /etc/os-release && echo "$VERSION_CODENAME") main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 apt-get update
-apt-get install --yes libvirt-daemon-system libvirt-dev qemu-kvm vagrant
+apt-get install --yes libvirt-daemon-system libvirt-dev qemu-system-x86 vagrant
 ```
 
 Enable and start the libvirt service, grant the runner access to KVM and the libvirt socket.
