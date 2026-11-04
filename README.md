@@ -54,6 +54,20 @@ mode, data is loaded only from the local MySQL database and file system. The
 operation mode can be set using `ucsc_genome_browser_offline_mode`. The
 default is the online mode.
 
+Text in the browser's track images is rendered anti-aliased with FreeType.
+The installer script turns this on in `hg.conf` (`freeType=on`) and
+downloads the fonts it needs into `htdocs/urw-fonts`, where they are kept up
+to date by the software updates. The fonts are looked up at
+`../htdocs/urw-fonts`, relative to the CGI directory. If `HTDOCDIR` is not
+next to `CGIBINDIR`, point `freeTypeDir` to the fonts, or set `freeType` to
+`off` to go back to the browser's built-in bitmap fonts, using
+`ucsc_genome_browser_hg_conf_settings`:
+
+```yaml
+ucsc_genome_browser_hg_conf_settings:
+  freeTypeDir: /srv/ucsc/htdocs/urw-fonts
+```
+
 The genome assemblies to install can be customized using the
 `ucsc_genome_browser_assemblies` variable. By default, all available
 assemblies are installed.
