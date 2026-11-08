@@ -23,6 +23,17 @@ ucsc_genome_browser_clean_schedule: daily
 # short API URLs, e.g. /list/ucscGenomes
 ucsc_genome_browser_api_short_urls_enabled: true
 
+# rate-limit hyperactive clients (bots/scrapers) with the bottleneck server
+ucsc_genome_browser_bottleneck_enabled: false
+ucsc_genome_browser_bottleneck_version: v505_branch.1  # kent git ref
+ucsc_genome_browser_bottleneck_path: /usr/local/bin/bottleneck
+ucsc_genome_browser_bottleneck_host: localhost
+ucsc_genome_browser_bottleneck_port: 17776
+ucsc_genome_browser_bottleneck_subnets: ["127.0.0.1/32", "::1/128"]  # allowed to connect
+ucsc_genome_browser_bottleneck_penalty: 75  # ms per access
+ucsc_genome_browser_bottleneck_recovery: 10  # ms recovered per idle second
+ucsc_genome_browser_bottleneck_except: []  # never throttled
+
 # ---- GLOBAL SETTINGS ----
 # Your setting is not listed here? Don't worry, they are just placeholders!
 # This role will automatically pick up any setting starting with

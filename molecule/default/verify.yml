@@ -182,3 +182,31 @@
               - data_update_timer.status.UnitFileState == "disabled"
               - data_update_timer.status.ActiveState == "inactive"
             fail_msg: "The genome assembly update timer should be disabled by default."
+
+    - name: Ensure the bottleneck server is running and configured
+      become: true
+      block:
+        - name: Get bottleneck service state
+          ansible.builtin.systemd_service:
+            name: ucsc-genome-browser-bottleneck.service
+          register: bottleneck_service
+
+        - name: Assert the bottleneck service is enabled and running
+          ansible.builtin.assert:
+            that:
+              - bottleneck_service.status.UnitFileState == "enabled"
+              - bottleneck_service.status.ActiveState == "active"
+            fail_msg: "The bottleneck service is not enabled and active."
+
+        - name: Read hg.conf file
+          ansible.builtin.slurp:
+            src: "{{ ucsc_genome_browser_setting_CGIBINDIR }}/hg.conf"
+          register: hg_conf_slurp
+
+        - name: Assert hg.conf points the CGIs at the bottleneck server
+          ansible.builtin.assert:
+            that:
+              - "hg_conf_slurp.content | b64decode is search('^bottleneck.host=localhost$', multiline=True)"
+              - "hg_conf_slurp.content | b64decode is search('^bottleneck.port=17776$', multiline=True)"
+              - "hg_conf_slurp.content | b64decode is search('^bottleneck.except=192.0.2.1 192.0.2.2$', multiline=True)"
+            fail_msg: "hg.conf does not point the CGIs at the bottleneck server."

@@ -3,3 +3,9 @@
   ansible.builtin.systemd_service:
     name: httpd
     state: reloaded
+
+- name: Restart bottleneck
+  ansible.builtin.systemd_service:
+    name: ucsc-genome-browser-bottleneck.service
+    state: restarted
+    daemon_reload: true

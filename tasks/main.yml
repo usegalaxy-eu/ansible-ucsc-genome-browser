@@ -36,6 +36,10 @@
       ansible.builtin.include_tasks:
         file: clean.yml
 
+    - name: Include tasks that set up the bottleneck server
+      ansible.builtin.include_tasks:
+        file: bottleneck.yml
+
     - name: Include tasks that download genome assemblies
       # includes genome assembly auto-update `systemd` units
       ansible.builtin.include_tasks:
