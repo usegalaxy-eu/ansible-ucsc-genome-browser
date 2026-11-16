@@ -36,6 +36,11 @@ ucsc_genome_browser_cgi_update_schedule: weekly
 ucsc_genome_browser_clean_enabled: true
 ucsc_genome_browser_clean_schedule: daily
 
+# custom tracks unused for this many hours are removed by a systemd timer
+ucsc_genome_browser_custom_tracks_clean_enabled: true
+ucsc_genome_browser_custom_tracks_clean_schedule: daily
+ucsc_genome_browser_custom_tracks_clean_age: 2880  # 120 days
+
 # short API URLs, e.g. /list/ucscGenomes
 ucsc_genome_browser_api_short_urls_enabled: true
 ```
@@ -83,6 +88,13 @@ Another `systemd` timer removes old files from the trash directory by running
 the installer script's `clean` command. Set `ucsc_genome_browser_clean_enabled`
 to `false` to disable it, and `ucsc_genome_browser_clean_schedule` to any valid
 `OnCalendar` value to change how often it runs.
+
+Custom tracks are stored in the `customTrash` database, with small pointer
+files in the trash `ct/` directory, which the trash cleaner skips. A further
+timer removes custom tracks unused for
+`ucsc_genome_browser_custom_tracks_clean_age` hours (default 120 days, so that
+saved sessions keep their custom tracks) using UCSC's `dbTrash`. Set
+`ucsc_genome_browser_custom_tracks_clean_enabled` to `false` to disable it.
 
 The [REST API](https://genome.ucsc.edu/goldenPath/help/api.html) is served by
 the `hubApi` CGI program at `/cgi-bin/hubApi/`. The variable

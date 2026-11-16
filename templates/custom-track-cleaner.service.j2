@@ -1,0 +1,13 @@
+{% set apachedir = ucsc_genome_browser_setting_APACHEDIR %}
+{% set cgibindir = ucsc_genome_browser_setting_CGIBINDIR | replace('$APACHEDIR', apachedir) | regex_replace('/+$', '') %}
+{% set trashdir = ucsc_genome_browser_setting_TRASHDIR | replace('$APACHEDIR', apachedir) | regex_replace('/+$', '') %}
+[Unit]
+Description=Expire old UCSC Genome Browser custom tracks
+After=mariadb.service
+
+[Service]
+Type=oneshot
+# connect with the custom track credentials from hg.conf
+Environment=HGDB_CONF={{ cgibindir }}/hg.conf HGDB_PROF=customTracks
+ExecStart=/usr/local/bin/dbTrash -age={{ ucsc_genome_browser_custom_tracks_clean_age }} -drop
+ExecStart=/usr/bin/find -L {{ trashdir }} -path "{{ trashdir }}/ct/*" -type f -amin +{{ ((ucsc_genome_browser_custom_tracks_clean_age | float) * 60) | int }} -delete

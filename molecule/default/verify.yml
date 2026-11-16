@@ -169,6 +169,59 @@
             that: not stale_file_stat.stat.exists
             fail_msg: "The trash cleaner did not remove a file older than one day."
 
+    - name: Ensure the custom track cleaner removes stale custom tracks
+      become: true
+      block:
+        - name: Get custom track cleaner timer state
+          ansible.builtin.systemd_service:
+            name: ucsc-genome-browser-custom-track-cleaner.timer
+          register: custom_track_clean_timer
+
+        - name: Ensure the custom track directory exists
+          ansible.builtin.file:
+            path: "{{ ucsc_genome_browser_setting_TRASHDIR }}/ct"
+            state: directory
+            mode: "0755"
+
+        - name: Create a stale custom track file
+          ansible.builtin.file:
+            path: "{{ ucsc_genome_browser_setting_TRASHDIR }}/ct/molecule-stale-file"
+            state: touch
+            access_time: "202001010000.00"
+            modification_time: "202001010000.00"
+
+        - name: Create a stale custom track table
+          ansible.builtin.command:
+            cmd: >-
+              mysql customTrash -e "CREATE TABLE molecule_stale_ct (id int);
+              INSERT INTO metaInfo VALUES ('molecule_stale_ct', 1, '2020-01-01 00:00:00')"
+          changed_when: true
+
+        - name: Run the custom track cleaner  # fails if `dbTrash` fails
+          ansible.builtin.systemd_service:
+            name: ucsc-genome-browser-custom-track-cleaner.service
+            state: started
+
+        - name: Stat the stale custom track file
+          ansible.builtin.stat:
+            path: "{{ ucsc_genome_browser_setting_TRASHDIR }}/ct/molecule-stale-file"
+          register: stale_ct_file_stat
+
+        - name: Look up the stale custom track table
+          ansible.builtin.command:
+            cmd: mysql -N customTrash -e "SHOW TABLES LIKE 'molecule_stale_ct'"
+          register: stale_ct_table
+          changed_when: false
+
+        - name: Assert the custom track cleaner is enabled and removed the stale file and table
+          ansible.builtin.assert:
+            that:
+              - custom_track_clean_timer.status.UnitFileState == "enabled"
+              - custom_track_clean_timer.status.ActiveState == "active"
+              - not stale_ct_file_stat.stat.exists
+              - stale_ct_table.stdout == ""
+            fail_msg: "The custom track cleaner timer is not active or it did not remove a stale file or table."
+
     - name: Ensure the genome assembly update timer is disabled
       block:
         - name: Get genome assembly update timer state
