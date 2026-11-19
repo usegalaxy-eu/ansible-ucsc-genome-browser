@@ -24,7 +24,7 @@ ucsc_genome_browser_clean_schedule: daily
 ucsc_genome_browser_custom_tracks_clean_enabled: true
 ucsc_genome_browser_custom_tracks_clean_schedule: daily
 ucsc_genome_browser_custom_tracks_clean_age: 2880  # 120 days, keeps custom tracks in saved sessions
-ucsc_genome_browser_dbtrash_url: https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/dbTrash
+ucsc_genome_browser_dbtrash_url: https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v479/dbTrash  # newer builds segfault
 
 # short API URLs, e.g. /list/ucscGenomes
 ucsc_genome_browser_api_short_urls_enabled: true
