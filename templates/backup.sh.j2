@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Back up the UCSC Genome Browser user data: user accounts, sessions and custom tracks
+{% set apachedir = ucsc_genome_browser_setting_APACHEDIR %}
+{% set trashdir = ucsc_genome_browser_setting_TRASHDIR | replace('$APACHEDIR', apachedir) | regex_replace('/+$', '') %}
+set -euo pipefail
+umask 077
+
+BACKUP_DIR="{{ ucsc_genome_browser_backup_dir | regex_replace('/+$', '') }}"
+TRASHDIR="{{ trashdir }}"
+STAMP="$(date +%Y%m%dT%H%M%S)"
+
+mysqldump --databases hgcentral customTrash | gzip > "$BACKUP_DIR/.databases.tmp"
+mv "$BACKUP_DIR/.databases.tmp" "$BACKUP_DIR/databases-$STAMP.sql.gz"
+
+# custom track pointer files
+if [ -d "$TRASHDIR/ct" ]; then
+    tar -czf "$BACKUP_DIR/.ct.tmp" -C "$TRASHDIR" ct
+    mv "$BACKUP_DIR/.ct.tmp" "$BACKUP_DIR/ct-$STAMP.tar.gz"
+fi
+
+find "$BACKUP_DIR" -maxdepth 1 -type f -mtime +{{ ucsc_genome_browser_backup_keep_days }} -delete

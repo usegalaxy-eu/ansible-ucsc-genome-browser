@@ -169,6 +169,51 @@
             that: not stale_file_stat.stat.exists
             fail_msg: "The trash cleaner did not remove a file older than one day."
 
+    - name: Ensure the backup service backs up user data and removes old backups
+      become: true
+      vars:
+        backup_dir: /var/backups/ucsc-genome-browser
+      block:
+        - name: Get backup timer state
+          ansible.builtin.systemd_service:
+            name: ucsc-genome-browser-backup.timer
+          register: backup_timer
+
+        - name: Ensure the custom track directory exists
+          ansible.builtin.file:
+            path: "{{ ucsc_genome_browser_setting_TRASHDIR }}/ct"
+            state: directory
+            mode: "0755"
+
+        - name: Create an old backup
+          ansible.builtin.file:
+            path: "{{ backup_dir }}/molecule-old-backup"
+            state: touch
+            access_time: "202001010000.00"
+            modification_time: "202001010000.00"
+
+        - name: Run the backup service  # fails if the dump fails
+          ansible.builtin.systemd_service:
+            name: ucsc-genome-browser-backup.service
+            state: started
+
+        - name: Find backups
+          ansible.builtin.find:
+            paths: "{{ backup_dir }}"
+          register: backups
+
+        - name: Assert the backup timer is enabled and the backups were made
+          vars:
+            names: "{{ backups.files | map(attribute='path') | map('basename') | list }}"
+          ansible.builtin.assert:
+            that:
+              - backup_timer.status.UnitFileState == "enabled"
+              - backup_timer.status.ActiveState == "active"
+              - names | select('match', 'databases-.*\\.sql\\.gz$') | length == 1
+              - names | select('match', 'ct-.*\\.tar\\.gz$') | length == 1
+              - "'molecule-old-backup' not in names"
+            fail_msg: "The backup timer is not active, a backup is missing, or an old backup was not removed."
+
     - name: Ensure the genome assembly update timer is disabled
       block:
         - name: Get genome assembly update timer state
