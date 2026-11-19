@@ -31,3 +31,9 @@
               - gbdb_symlink_stat.stat.islnk
               - gbdb_symlink_stat.stat.lnk_source == "/srv/ucsc_genome_browser/gbdb"
             fail_msg: "`/gbdb/` is not a symlink pointing to the correct location. It should point to `{{ ucsc_genome_browser_setting_GBDBDIR }}`."
+
+    - name: Ensure the custom track cleaner runs with the installer's default paths
+      become: true
+      ansible.builtin.systemd_service:
+        name: ucsc-genome-browser-custom-track-cleaner.service
+        state: started
