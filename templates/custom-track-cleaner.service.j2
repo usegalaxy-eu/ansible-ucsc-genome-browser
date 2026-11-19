@@ -8,6 +8,6 @@ After=mariadb.service
 [Service]
 Type=oneshot
 # connect with the custom track credentials from hg.conf
-Environment=HGDB_CONF={{ cgibindir }}/hg.conf HGDB_PROF=customTracks
+Environment=HGDB_CONF={{ cgibindir }}/hg.conf HGDB_PROF=customTracks HGDB_SOCKET={{ ucsc_genome_browser_mysql_socket.stdout }}
 ExecStart=/usr/local/bin/dbTrash -age={{ ucsc_genome_browser_custom_tracks_clean_age }} -drop
 ExecStart=/usr/bin/find -L {{ trashdir }} -path "{{ trashdir }}/ct/*" -type f -amin +{{ ((ucsc_genome_browser_custom_tracks_clean_age | float) * 60) | int }} -delete

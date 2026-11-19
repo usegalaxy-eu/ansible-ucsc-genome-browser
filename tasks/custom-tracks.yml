@@ -17,6 +17,14 @@
       useCount int not null, lastUse datetime not null, PRIMARY KEY(name))"
   changed_when: false
 
+- name: Get the MariaDB socket path
+  # the installer comments out the sockets in hg.conf on EL, and `dbTrash`
+  # falls back to the wrong default
+  ansible.builtin.command:
+    cmd: "{{ ucsc_genome_browser_setting_MYSQL }} -NBe 'SELECT @@socket'"
+  register: ucsc_genome_browser_mysql_socket
+  changed_when: false
+
 - name: Install UCSC Genome Browser custom track cleanup units
   ansible.builtin.template:
     src: "{{ item }}.j2"
