@@ -5,6 +5,6 @@ After=network-online.target mariadb.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/flock /run/lock/ucsc-genome-browser-update.lock /usr/bin/env {{ ucsc_genome_browser_assemblies_env | default('') }} {{ ucsc_genome_browser_setup_script_path }} -b {{ '-u' if ucsc_genome_browser_assemblies_udr else '' }} mirror {{ ucsc_genome_browser_assemblies | join(' ') }}
+ExecStart=/usr/bin/flock /run/lock/ucsc-genome-browser-update.lock /usr/bin/env {{ ucsc_genome_browser_assemblies_env | default('') }} {{ ucsc_genome_browser_setup_script_path }} -b {{ '-u' if ucsc_genome_browser_assemblies_udr else '' }} mirror {{ ucsc_genome_browser_assemblies_update_assemblies | join(' ') }}
 # `mirror` always switches to offline mode
 ExecStartPost={{ ucsc_genome_browser_setup_script_path }} -b {{ 'offline' if ucsc_genome_browser_offline_mode else 'online' }}
