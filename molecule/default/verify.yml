@@ -49,6 +49,7 @@
           loop: "{{ ucsc_genome_browser_hg_conf_settings | dict2items }}"
 
     - name: Ensure private hg.conf settings have been applied
+      become: true
       block:
         - name: Read hg.conf.private file
           ansible.builtin.slurp:
