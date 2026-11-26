@@ -11,6 +11,26 @@
   loop_control:
     label: "{{ item.key }}"
 
+- name: Apply UCSC Genome Browser private hg.conf settings
+  when: ucsc_genome_browser_hg_conf_private_settings | length > 0
+  block:
+    - name: Write hg.conf.private
+      ansible.builtin.copy:
+        dest: "{{ ucsc_genome_browser_setting_CGIBINDIR }}/hg.conf.private"
+        content: |
+          {% for key, value in ucsc_genome_browser_hg_conf_private_settings.items() %}
+          {{ key }}={{ value }}
+          {% endfor %}
+        owner: root
+        group: apache
+        mode: "0640"
+      no_log: true
+
+    - name: Include hg.conf.private in hg.conf
+      ansible.builtin.lineinfile:
+        path: "{{ ucsc_genome_browser_setting_CGIBINDIR }}/hg.conf"
+        line: include hg.conf.private
+
 - name: Serve the UCSC Genome Browser API also via short URLs
   ansible.builtin.blockinfile:
     path: /etc/httpd/conf.d/001-browser.conf  # created by installation script

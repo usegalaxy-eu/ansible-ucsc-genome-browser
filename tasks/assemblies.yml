@@ -10,6 +10,7 @@
     - name: Get list of all genome assemblies from UCSC Genome Browser API
       ansible.builtin.shell:
         cmd: "curl -L 'https://api.genome.ucsc.edu/list/ucscGenomes' | jq -r '.ucscGenomes | keys'"
+      changed_when: false
       register: ucsc_genome_browser_assemblies_from_api
 
     - name: Convert to JSON
@@ -19,6 +20,8 @@
 - name: Download genome assemblies
   ansible.builtin.shell:
     cmd: "env {{ ucsc_genome_browser_assemblies_env | default('') }} bash {{ ucsc_genome_browser_install_script }} -b {{ '-u' if ucsc_genome_browser_assemblies_udr else '' }} mirror {{ assembly }}"
+    # updates are left to the assembly updater
+    creates: "/gbdb/{{ assembly }}"
   loop: "{{ ucsc_genome_browser_assemblies }}"
   loop_control:
     loop_var: assembly
