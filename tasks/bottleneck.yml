@@ -1,0 +1,147 @@
+---
+- name: Set up the UCSC Genome Browser bottleneck server
+  when: ucsc_genome_browser_bottleneck_enabled
+  vars:
+    ucsc_genome_browser_bottleneck_version_file: /usr/local/share/ucsc-genome-browser/bottleneck.version
+  block:
+    - name: Check which version of bottleneck is installed
+      ansible.builtin.slurp:
+        src: "{{ ucsc_genome_browser_bottleneck_version_file }}"
+      register: ucsc_genome_browser_bottleneck_installed_version
+      failed_when: false
+
+    - name: Check if bottleneck is installed
+      ansible.builtin.stat:
+        path: "{{ ucsc_genome_browser_bottleneck_path }}"
+      register: ucsc_genome_browser_bottleneck_binary
+
+    - name: Build and install bottleneck
+      # no upstream binary
+      when: >-
+        not ucsc_genome_browser_bottleneck_binary.stat.exists
+        or ucsc_genome_browser_bottleneck_installed_version.content is not defined
+        or (ucsc_genome_browser_bottleneck_installed_version.content | b64decode | trim) != ucsc_genome_browser_bottleneck_version
+      vars:
+        ucsc_genome_browser_kent_dir: "{{ ucsc_genome_browser_tmpdir.path }}/kent"
+      block:
+        - name: Install packages required to build bottleneck
+          ansible.builtin.package:
+            name:
+              - bzip2-devel
+              - freetype-devel
+              - gcc
+              - gcc-c++
+              - git
+              - libcurl-devel
+              - libpng-devel
+              - libuuid-devel
+              - make
+              - mariadb-connector-c-devel
+              - openssl-devel
+              - which
+              - xz-devel
+            state: present
+
+        - name: Clone the kent source tree
+          ansible.builtin.git:
+            repo: https://github.com/ucscGenomeBrowser/kent.git
+            dest: "{{ ucsc_genome_browser_kent_dir }}"
+            version: "{{ ucsc_genome_browser_bottleneck_version }}"
+            depth: 1
+            recursive: true
+          changed_when: false  # cleaned up after installation
+
+        - name: Build the kent libraries
+          community.general.make:
+            chdir: "{{ ucsc_genome_browser_kent_dir }}/src"
+            target: topLibs
+            jobs: "{{ ansible_facts['processor_vcpus'] | default(1) }}"
+          changed_when: false  # cleaned up after installation
+
+        - name: Build bottleneck
+          community.general.make:
+            chdir: "{{ ucsc_genome_browser_kent_dir }}/src/weblet/bottleneck"
+            params:
+              DESTBINDIR: "{{ ucsc_genome_browser_kent_dir }}/bin"
+          changed_when: false  # cleaned up after installation
+
+        - name: Install bottleneck
+          ansible.builtin.copy:
+            src: "{{ ucsc_genome_browser_kent_dir }}/bin/bottleneck"
+            dest: "{{ ucsc_genome_browser_bottleneck_path }}"
+            remote_src: true
+            owner: root
+            group: root
+            mode: "0755"
+          notify: Restart bottleneck
+
+        - name: Create directory for the bottleneck version file
+          ansible.builtin.file:
+            path: "{{ ucsc_genome_browser_bottleneck_version_file | dirname }}"
+            state: directory
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Record which version of bottleneck is installed
+          ansible.builtin.copy:
+            content: "{{ ucsc_genome_browser_bottleneck_version }}\n"
+            dest: "{{ ucsc_genome_browser_bottleneck_version_file }}"
+            owner: root
+            group: root
+            mode: "0644"
+
+    - name: Install UCSC Genome Browser bottleneck unit
+      ansible.builtin.template:
+        src: bottleneck.service.j2
+        dest: /etc/systemd/system/ucsc-genome-browser-bottleneck.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart bottleneck
+
+    - name: Enable and start UCSC Genome Browser bottleneck server
+      ansible.builtin.systemd_service:
+        name: ucsc-genome-browser-bottleneck.service
+        enabled: true
+        state: started
+        daemon_reload: true
+
+# CGIs fail if bottleneck is configured but down
+- name: Restart UCSC Genome Browser bottleneck server if needed
+  ansible.builtin.meta: flush_handlers
+
+- name: Point the UCSC Genome Browser at the bottleneck server
+  community.general.ini_file:
+    path: "{{ ucsc_genome_browser_setting_CGIBINDIR }}/hg.conf"
+    section: null  # hg.conf is a flat key=value file with no sections
+    option: "{{ item.key }}"
+    value: "{{ item.value if ucsc_genome_browser_bottleneck_present else omit }}"
+    no_extra_spaces: true
+    state: "{{ 'present' if ucsc_genome_browser_bottleneck_present else 'absent' }}"
+  loop:
+    - key: bottleneck.host
+      value: "{{ ucsc_genome_browser_bottleneck_host }}"
+    - key: bottleneck.port
+      value: "{{ ucsc_genome_browser_bottleneck_port }}"
+    - key: bottleneck.except
+      value: "{{ ucsc_genome_browser_bottleneck_except | join(' ') }}"
+  loop_control:
+    label: "{{ item.key }}"
+  vars:
+    ucsc_genome_browser_bottleneck_present: "{{ ucsc_genome_browser_bottleneck_enabled and item.value | string | length > 0 }}"
+
+- name: Stop UCSC Genome Browser bottleneck server
+  when: not ucsc_genome_browser_bottleneck_enabled
+  block:
+    - name: Check if UCSC Genome Browser bottleneck unit is installed
+      ansible.builtin.stat:
+        path: /etc/systemd/system/ucsc-genome-browser-bottleneck.service
+      register: ucsc_genome_browser_bottleneck_unit
+
+    - name: Disable and stop UCSC Genome Browser bottleneck server
+      ansible.builtin.systemd_service:
+        name: ucsc-genome-browser-bottleneck.service
+        enabled: false
+        state: stopped
+      when: ucsc_genome_browser_bottleneck_unit.stat.exists

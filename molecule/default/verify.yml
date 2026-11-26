@@ -62,6 +62,53 @@
               - hg_conf_decoded is search('^addJs=plausible.js$', multiline=True)
             fail_msg: "plausible.js is missing or not loaded via `addJs` in hg.conf."
 
+    - name: Ensure private hg.conf settings have been applied
+      become: true
+      block:
+        - name: Read hg.conf.private file
+          ansible.builtin.slurp:
+            src: "{{ ucsc_genome_browser_setting_CGIBINDIR }}/hg.conf.private"
+          register: hg_conf_private_slurp
+
+        - name: Stat hg.conf.private file
+          ansible.builtin.stat:
+            path: "{{ ucsc_genome_browser_setting_CGIBINDIR }}/hg.conf.private"
+          register: hg_conf_private_stat
+
+        - name: Assert hg.conf.private is included, readable only by Apache and holds the settings
+          ansible.builtin.assert:
+            that:
+              - hg_conf_decoded is search('^include hg.conf.private$', multiline=True)
+              - hg_conf_private_stat.stat.mode == "0640"
+              - hg_conf_private_stat.stat.gr_name == "apache"
+              - (hg_conf_private_slurp.content | b64decode) == "login.cookieSalt=molecule-salt\n"
+            fail_msg: "hg.conf.private is missing, not included, or has wrong permissions or content."
+
+    - name: Ensure FreeType font support is enabled
+      vars:
+        freetype_dir_setting: "{{ hg_conf_decoded | regex_search('^freeTypeDir=(.+)$', '\\1', multiline=True) | first }}"
+        # relative to the CGI directory
+        freetype_dir: "{{ freetype_dir_setting if freetype_dir_setting.startswith('/') else ucsc_genome_browser_setting_CGIBINDIR ~ '/' ~ freetype_dir_setting }}"
+      block:
+        - name: Assert FreeType is turned on in hg.conf
+          ansible.builtin.assert:
+            that:
+              - hg_conf_decoded is search('^freeType=on$', multiline=True)
+              - hg_conf_decoded is search('^freeTypeDir=.+$', multiline=True)
+            fail_msg: "hg.conf does not turn on FreeType font rendering or does not set the font directory."
+
+        - name: Stat FreeType font directory
+          ansible.builtin.stat:
+            path: "{{ freetype_dir }}"
+          register: freetype_dir_stat
+
+        - name: Assert FreeType font directory exists
+          ansible.builtin.assert:
+            that:
+              - freetype_dir_stat.stat.exists
+              - freetype_dir_stat.stat.isdir
+            fail_msg: "FreeType font directory {{ freetype_dir }} not found."
+
     - name: Ensure API is served via short URLs, as on the public website
       block:
         - name: Query a non-API path
@@ -183,6 +230,104 @@
             that: not stale_file_stat.stat.exists
             fail_msg: "The trash cleaner did not remove a file older than one day."
 
+    - name: Ensure the backup service backs up user data and removes old backups
+      become: true
+      vars:
+        backup_dir: /var/backups/ucsc-genome-browser
+      block:
+        - name: Get backup timer state
+          ansible.builtin.systemd_service:
+            name: ucsc-genome-browser-backup.timer
+          register: backup_timer
+
+        - name: Ensure the custom track directory exists
+          ansible.builtin.file:
+            path: "{{ ucsc_genome_browser_setting_TRASHDIR }}/ct"
+            state: directory
+            mode: "0755"
+
+        - name: Create an old backup
+          ansible.builtin.file:
+            path: "{{ backup_dir }}/molecule-old-backup"
+            state: touch
+            access_time: "202001010000.00"
+            modification_time: "202001010000.00"
+
+        - name: Run the backup service  # fails if the dump fails
+          ansible.builtin.systemd_service:
+            name: ucsc-genome-browser-backup.service
+            state: started
+
+        - name: Find backups
+          ansible.builtin.find:
+            paths: "{{ backup_dir }}"
+          register: backups
+
+        - name: Assert the backup timer is enabled and the backups were made
+          vars:
+            names: "{{ backups.files | map(attribute='path') | map('basename') | list }}"
+          ansible.builtin.assert:
+            that:
+              - backup_timer.status.UnitFileState == "enabled"
+              - backup_timer.status.ActiveState == "active"
+              - names | select('match', 'databases-.*\\.sql\\.gz$') | length == 1
+              - names | select('match', 'ct-.*\\.tar\\.gz$') | length == 1
+              - "'molecule-old-backup' not in names"
+            fail_msg: "The backup timer is not active, a backup is missing, or an old backup was not removed."
+
+    - name: Ensure the custom track cleaner removes stale custom tracks
+      become: true
+      block:
+        - name: Get custom track cleaner timer state
+          ansible.builtin.systemd_service:
+            name: ucsc-genome-browser-custom-track-cleaner.timer
+          register: custom_track_clean_timer
+
+        - name: Ensure the custom track directory exists
+          ansible.builtin.file:
+            path: "{{ ucsc_genome_browser_setting_TRASHDIR }}/ct"
+            state: directory
+            mode: "0755"
+
+        - name: Create a stale custom track file
+          ansible.builtin.file:
+            path: "{{ ucsc_genome_browser_setting_TRASHDIR }}/ct/molecule-stale-file"
+            state: touch
+            access_time: "202001010000.00"
+            modification_time: "202001010000.00"
+
+        - name: Create a stale custom track table
+          ansible.builtin.command:
+            cmd: >-
+              mysql customTrash -e "CREATE TABLE molecule_stale_ct (id int);
+              INSERT INTO metaInfo VALUES ('molecule_stale_ct', 1, '2020-01-01 00:00:00')"
+          changed_when: true
+
+        - name: Run the custom track cleaner  # fails if `dbTrash` fails
+          ansible.builtin.systemd_service:
+            name: ucsc-genome-browser-custom-track-cleaner.service
+            state: started
+
+        - name: Stat the stale custom track file
+          ansible.builtin.stat:
+            path: "{{ ucsc_genome_browser_setting_TRASHDIR }}/ct/molecule-stale-file"
+          register: stale_ct_file_stat
+
+        - name: Look up the stale custom track table
+          ansible.builtin.command:
+            cmd: mysql -N customTrash -e "SHOW TABLES LIKE 'molecule_stale_ct'"
+          register: stale_ct_table
+          changed_when: false
+
+        - name: Assert the custom track cleaner is enabled and removed the stale file and table
+          ansible.builtin.assert:
+            that:
+              - custom_track_clean_timer.status.UnitFileState == "enabled"
+              - custom_track_clean_timer.status.ActiveState == "active"
+              - not stale_ct_file_stat.stat.exists
+              - stale_ct_table.stdout == ""
+            fail_msg: "The custom track cleaner timer is not active or it did not remove a stale file or table."
+
     - name: Ensure the genome assembly update timer is disabled
       block:
         - name: Get genome assembly update timer state
@@ -196,3 +341,31 @@
               - data_update_timer.status.UnitFileState == "disabled"
               - data_update_timer.status.ActiveState == "inactive"
             fail_msg: "The genome assembly update timer should be disabled by default."
+
+    - name: Ensure the bottleneck server is running and configured
+      become: true
+      block:
+        - name: Get bottleneck service state
+          ansible.builtin.systemd_service:
+            name: ucsc-genome-browser-bottleneck.service
+          register: bottleneck_service
+
+        - name: Assert the bottleneck service is enabled and running
+          ansible.builtin.assert:
+            that:
+              - bottleneck_service.status.UnitFileState == "enabled"
+              - bottleneck_service.status.ActiveState == "active"
+            fail_msg: "The bottleneck service is not enabled and active."
+
+        - name: Read hg.conf file
+          ansible.builtin.slurp:
+            src: "{{ ucsc_genome_browser_setting_CGIBINDIR }}/hg.conf"
+          register: hg_conf_slurp
+
+        - name: Assert hg.conf points the CGIs at the bottleneck server
+          ansible.builtin.assert:
+            that:
+              - "hg_conf_slurp.content | b64decode is search('^bottleneck.host=localhost$', multiline=True)"
+              - "hg_conf_slurp.content | b64decode is search('^bottleneck.port=17776$', multiline=True)"
+              - "hg_conf_slurp.content | b64decode is search('^bottleneck.except=192.0.2.1 192.0.2.2$', multiline=True)"
+            fail_msg: "hg.conf does not point the CGIs at the bottleneck server."
