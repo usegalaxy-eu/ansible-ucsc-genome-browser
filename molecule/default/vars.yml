@@ -17,3 +17,6 @@ ucsc_genome_browser_hg_conf_settings:
 
 ucsc_genome_browser_hg_conf_private_settings:
   login.cookieSalt: molecule-salt
+
+ucsc_genome_browser_bottleneck_enabled: true
+ucsc_genome_browser_bottleneck_except: ["192.0.2.1", "192.0.2.2"]
