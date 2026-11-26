@@ -36,6 +36,17 @@ ucsc_genome_browser_cgi_update_schedule: weekly
 ucsc_genome_browser_clean_enabled: true
 ucsc_genome_browser_clean_schedule: daily
 
+# custom tracks unused for this many hours are removed by a systemd timer
+ucsc_genome_browser_custom_tracks_clean_enabled: true
+ucsc_genome_browser_custom_tracks_clean_schedule: daily
+ucsc_genome_browser_custom_tracks_clean_age: 2880  # 120 days
+
+# user data (`hgcentral`, `customTrash`, trash `ct/`) is backed up by a systemd timer
+ucsc_genome_browser_backup_enabled: true
+ucsc_genome_browser_backup_schedule: daily
+ucsc_genome_browser_backup_dir: /var/backups/ucsc-genome-browser
+ucsc_genome_browser_backup_keep_days: 15
+
 # short API URLs, e.g. /list/ucscGenomes
 ucsc_genome_browser_api_short_urls_enabled: true
 ```
@@ -53,6 +64,20 @@ online mode, data is loaded from UCSC when not present locally. In offline
 mode, data is loaded only from the local MySQL database and file system. The
 operation mode can be set using `ucsc_genome_browser_offline_mode`. The
 default is the online mode.
+
+Text in the browser's track images is rendered anti-aliased with FreeType.
+The installer script turns this on in `hg.conf` (`freeType=on`) and
+downloads the fonts it needs into `htdocs/urw-fonts`, where they are kept up
+to date by the software updates. The fonts are looked up at
+`../htdocs/urw-fonts`, relative to the CGI directory. If `HTDOCDIR` is not
+next to `CGIBINDIR`, point `freeTypeDir` to the fonts, or set `freeType` to
+`off` to go back to the browser's built-in bitmap fonts, using
+`ucsc_genome_browser_hg_conf_settings`:
+
+```yaml
+ucsc_genome_browser_hg_conf_settings:
+  freeTypeDir: /srv/ucsc/htdocs/urw-fonts
+```
 
 The genome assemblies to install can be customized using the
 `ucsc_genome_browser_assemblies` variable. By default, all available
@@ -83,6 +108,23 @@ Another `systemd` timer removes old files from the trash directory by running
 the installer script's `clean` command. Set `ucsc_genome_browser_clean_enabled`
 to `false` to disable it, and `ucsc_genome_browser_clean_schedule` to any valid
 `OnCalendar` value to change how often it runs.
+
+Custom tracks are stored in the `customTrash` database, with small pointer
+files in the trash `ct/` directory, which the trash cleaner skips. A further
+timer removes custom tracks unused for
+`ucsc_genome_browser_custom_tracks_clean_age` hours (default 120 days, so that
+saved sessions keep their custom tracks) using UCSC's `dbTrash`. Set
+`ucsc_genome_browser_custom_tracks_clean_enabled` to `false` to disable it.
+
+A further timer backs up the user data: user accounts and saved sessions
+(`hgcentral`), custom tracks (`customTrash`) and the custom track files in the
+trash `ct/` directory. The genome assemblies are not backed up, as they can be
+downloaded again, nor are the big `hgcentral` tables that the software update
+reloads from UCSC. Backups are written to `ucsc_genome_browser_backup_dir` and
+kept for `ucsc_genome_browser_backup_keep_days` days. Point it to storage off
+the host. Set `ucsc_genome_browser_backup_enabled` to `false` to disable it.
+To restore, run `zcat databases-<date>.sql.gz | mysql` and extract
+`ct-<date>.tar.gz` into the trash directory.
 
 The [REST API](https://genome.ucsc.edu/goldenPath/help/api.html) is served by
 the `hubApi` CGI program at `/cgi-bin/hubApi/`. The variable

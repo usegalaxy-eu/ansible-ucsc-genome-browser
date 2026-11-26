@@ -1,0 +1,9 @@
+[Unit]
+Description=Periodically expire old UCSC Genome Browser custom tracks
+
+[Timer]
+OnCalendar={{ ucsc_genome_browser_custom_tracks_clean_schedule }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

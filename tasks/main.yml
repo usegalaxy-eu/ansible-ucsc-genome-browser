@@ -36,6 +36,14 @@
       ansible.builtin.include_tasks:
         file: clean.yml
 
+    - name: Include tasks that set up custom track cleanup
+      ansible.builtin.include_tasks:
+        file: custom-tracks.yml
+
+    - name: Include tasks that set up backups
+      ansible.builtin.include_tasks:
+        file: backup.yml
+
     - name: Include tasks that download genome assemblies
       # includes genome assembly auto-update `systemd` units
       ansible.builtin.include_tasks:
