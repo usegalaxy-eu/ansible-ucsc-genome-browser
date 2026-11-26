@@ -23,6 +23,10 @@ ucsc_genome_browser_clean_schedule: daily
 # short API URLs, e.g. /list/ucscGenomes
 ucsc_genome_browser_api_short_urls_enabled: true
 
+# Plausible analytics, off when the domain is empty
+ucsc_genome_browser_plausible_domain: ""  # e.g. genome-browser.galaxyproject.eu
+ucsc_genome_browser_plausible_server: https://plausible.galaxyproject.eu
+
 # ---- GLOBAL SETTINGS ----
 # Your setting is not listed here? Don't worry, they are just placeholders!
 # This role will automatically pick up any setting starting with

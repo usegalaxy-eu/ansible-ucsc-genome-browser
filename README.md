@@ -38,6 +38,10 @@ ucsc_genome_browser_clean_schedule: daily
 
 # short API URLs, e.g. /list/ucscGenomes
 ucsc_genome_browser_api_short_urls_enabled: true
+
+# Plausible analytics, off when the domain is empty
+ucsc_genome_browser_plausible_domain: ""  # e.g. genome-browser.galaxyproject.eu
+ucsc_genome_browser_plausible_server: https://plausible.galaxyproject.eu
 ```
 
 Use `ucsc_genome_browser_setup_script` to pin the installer script to a
@@ -91,6 +95,13 @@ short URLs for the API via Apache rewrite rules, so that the API endpoints
 `/list`, `/getData`, `/findGenome` and `/search` are also served at `/` and
 cross-origin requests are allowed. For example, with short URLs enabled,
 `/list/ucscGenomes` answers the same as `/cgi-bin/hubApi/list/ucscGenomes`.
+
+Set `ucsc_genome_browser_plausible_domain` to count page views with
+[Plausible](https://plausible.io/) at `ucsc_genome_browser_plausible_server`.
+The role adds a small script via the hg.conf `addJs` key, which sends only the
+URL path, never the query string. Downloads (Table Browser output files and
+file links) are sent as `File Download` events. Static pages such as the help
+pages are not counted.
 
 ## Dependencies
 
