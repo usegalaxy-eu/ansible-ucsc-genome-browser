@@ -20,6 +20,12 @@ ucsc_genome_browser_cgi_update_schedule: weekly
 ucsc_genome_browser_clean_enabled: true
 ucsc_genome_browser_clean_schedule: daily
 
+# custom tracks (customTrash tables and trash/ct files) unused for this many hours are removed
+ucsc_genome_browser_custom_tracks_clean_enabled: true
+ucsc_genome_browser_custom_tracks_clean_schedule: daily
+ucsc_genome_browser_custom_tracks_clean_age: 2880  # 120 days, keeps custom tracks in saved sessions
+ucsc_genome_browser_dbtrash_url: https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v479/dbTrash  # newer builds segfault
+
 # user data (`hgcentral`, `customTrash`, trash `ct/`) is backed up by a systemd timer
 ucsc_genome_browser_backup_enabled: true
 ucsc_genome_browser_backup_schedule: daily
