@@ -48,6 +48,20 @@
             fail_msg: "One or more hg.conf settings are missing or incorrect."
           loop: "{{ ucsc_genome_browser_hg_conf_settings | dict2items }}"
 
+    - name: Ensure the Plausible analytics script is set up
+      block:
+        - name: Stat the Plausible analytics script
+          ansible.builtin.stat:
+            path: "{{ ucsc_genome_browser_setting_APACHEDIR }}/htdocs/js/plausible.js"
+          register: plausible_js_stat
+
+        - name: Assert the script exists and hg.conf loads it
+          ansible.builtin.assert:
+            that:
+              - plausible_js_stat.stat.exists
+              - hg_conf_decoded is search('^addJs=plausible.js$', multiline=True)
+            fail_msg: "plausible.js is missing or not loaded via `addJs` in hg.conf."
+
     - name: Ensure private hg.conf settings have been applied
       become: true
       block:

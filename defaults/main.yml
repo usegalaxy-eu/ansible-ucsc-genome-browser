@@ -46,6 +46,10 @@ ucsc_genome_browser_bottleneck_penalty: 75  # ms per access
 ucsc_genome_browser_bottleneck_recovery: 10  # ms recovered per idle second
 ucsc_genome_browser_bottleneck_except: []  # never throttled
 
+# Plausible analytics, off when the domain is empty
+ucsc_genome_browser_plausible_domain: ""  # e.g. genome-browser.galaxyproject.eu
+ucsc_genome_browser_plausible_server: https://plausible.galaxyproject.eu
+
 # ---- GLOBAL SETTINGS ----
 # Your setting is not listed here? Don't worry, they are just placeholders!
 # This role will automatically pick up any setting starting with

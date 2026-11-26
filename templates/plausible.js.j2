@@ -1,0 +1,25 @@
+// path only: UCSC URLs carry hgsid
+function plausible(name, path) {
+  fetch({{ (ucsc_genome_browser_plausible_server ~ '/api/event') | to_json }}, {
+    method: "POST",
+    keepalive: true,
+    body: JSON.stringify({
+      n: name,
+      d: {{ ucsc_genome_browser_plausible_domain | to_json }},
+      u: location.origin + path,
+      r: document.referrer.split(/[?#]/)[0] || null
+    })
+  });
+}
+plausible("pageview", location.pathname);
+
+// downloads: Table Browser output to a file, and links to files on this server
+document.addEventListener("submit", function (e) {
+  var file = e.target.elements && e.target.elements.hgta_outFileName;
+  if (file && file.value && e.submitter && e.submitter.name === "hgta_doTopSubmit") plausible("File Download", location.pathname);
+});
+document.addEventListener("click", function (e) {
+  var a = e.target.closest && e.target.closest("a[href]");
+  if (a && a.origin === location.origin && /\.(gz|zip|2bit|fa|bb|bw|bam|bed|vcf|txt)$/i.test(a.pathname))
+    plausible("File Download", a.pathname);
+});

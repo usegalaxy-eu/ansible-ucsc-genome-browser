@@ -39,3 +39,36 @@
     block: "{{ lookup('ansible.builtin.template', 'hubApi.conf.j2') }}"
     state: "{{ 'present' if ucsc_genome_browser_api_short_urls_enabled else 'absent' }}"
   notify: Reload Apache
+
+- name: Set up Plausible analytics
+  vars:
+    plausible_enabled: "{{ ucsc_genome_browser_plausible_domain | default('', true) | length > 0 }}"
+  block:
+    - name: Ensure `addJs` is not also set in `ucsc_genome_browser_hg_conf_settings`
+      ansible.builtin.assert:
+        that: "'addJs' not in ucsc_genome_browser_hg_conf_settings"
+        fail_msg: "Plausible analytics needs the hg.conf `addJs` key for itself."
+      when: plausible_enabled
+
+    - name: Manage Plausible analytics script
+      ansible.builtin.template:
+        src: plausible.js.j2
+        dest: "{{ ucsc_genome_browser_setting_HTDOCDIR | replace('$APACHEDIR', ucsc_genome_browser_setting_APACHEDIR) }}/js/plausible.js"
+        mode: "0644"
+      when: plausible_enabled
+
+    - name: Manage Plausible analytics script in hg.conf
+      community.general.ini_file:
+        path: "{{ ucsc_genome_browser_setting_CGIBINDIR }}/hg.conf"
+        section: null
+        option: addJs
+        value: plausible.js
+        exclusive: false  # leave other `addJs` values alone
+        no_extra_spaces: true
+        state: "{{ 'present' if plausible_enabled else 'absent' }}"
+
+    - name: Remove Plausible analytics script
+      ansible.builtin.file:
+        path: "{{ ucsc_genome_browser_setting_HTDOCDIR | replace('$APACHEDIR', ucsc_genome_browser_setting_APACHEDIR) }}/js/plausible.js"
+        state: absent
+      when: not plausible_enabled
