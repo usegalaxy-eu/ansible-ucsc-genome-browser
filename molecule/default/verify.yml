@@ -48,6 +48,31 @@
             fail_msg: "One or more hg.conf settings are missing or incorrect."
           loop: "{{ ucsc_genome_browser_hg_conf_settings | dict2items }}"
 
+    - name: Ensure FreeType font support is enabled
+      vars:
+        freetype_dir_setting: "{{ hg_conf_decoded | regex_search('^freeTypeDir=(.+)$', '\\1', multiline=True) | first }}"
+        # relative to the CGI directory
+        freetype_dir: "{{ freetype_dir_setting if freetype_dir_setting.startswith('/') else ucsc_genome_browser_setting_CGIBINDIR ~ '/' ~ freetype_dir_setting }}"
+      block:
+        - name: Assert FreeType is turned on in hg.conf
+          ansible.builtin.assert:
+            that:
+              - hg_conf_decoded is search('^freeType=on$', multiline=True)
+              - hg_conf_decoded is search('^freeTypeDir=.+$', multiline=True)
+            fail_msg: "hg.conf does not turn on FreeType font rendering or does not set the font directory."
+
+        - name: Stat FreeType font directory
+          ansible.builtin.stat:
+            path: "{{ freetype_dir }}"
+          register: freetype_dir_stat
+
+        - name: Assert FreeType font directory exists
+          ansible.builtin.assert:
+            that:
+              - freetype_dir_stat.stat.exists
+              - freetype_dir_stat.stat.isdir
+            fail_msg: "FreeType font directory {{ freetype_dir }} not found."
+
     - name: Ensure API is served via short URLs, as on the public website
       block:
         - name: Query a non-API path
