@@ -1,0 +1,9 @@
+[Unit]
+Description=Periodically back up UCSC Genome Browser user data
+
+[Timer]
+OnCalendar={{ ucsc_genome_browser_backup_schedule }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,8 @@
+[Unit]
+Description=Back up UCSC Genome Browser user data
+After=mariadb.service
+
+[Service]
+Type=oneshot
+# wait for software and assembly updates, which stop MariaDB or reload `hgcentral` tables
+ExecStart=/usr/bin/flock /run/lock/ucsc-genome-browser-update.lock /usr/local/bin/ucsc-genome-browser-backup
