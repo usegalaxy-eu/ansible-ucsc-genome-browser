@@ -93,7 +93,8 @@ to `false` to disable it, and `ucsc_genome_browser_clean_schedule` to any valid
 A further timer backs up the user data: user accounts and saved sessions
 (`hgcentral`), custom tracks (`customTrash`) and the custom track files in the
 trash `ct/` directory. The genome assemblies are not backed up, as they can be
-downloaded again. Backups are written to `ucsc_genome_browser_backup_dir` and
+downloaded again, nor are the big `hgcentral` tables that the software update
+reloads from UCSC. Backups are written to `ucsc_genome_browser_backup_dir` and
 kept for `ucsc_genome_browser_backup_keep_days` days. Point it to storage off
 the host. Set `ucsc_genome_browser_backup_enabled` to `false` to disable it.
 To restore, run `zcat databases-<date>.sql.gz | mysql` and extract

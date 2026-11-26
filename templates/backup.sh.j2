@@ -9,7 +9,11 @@ BACKUP_DIR="{{ ucsc_genome_browser_backup_dir | regex_replace('/+$', '') }}"
 TRASHDIR="{{ trashdir }}"
 STAMP="$(date +%Y%m%dT%H%M%S)"
 
-mysqldump --databases hgcentral customTrash | gzip > "$BACKUP_DIR/.databases.tmp"
+# skip the big tables that `cgiUpdate` reloads from UCSC's hgcentral.sql
+mysqldump --databases hgcentral customTrash \
+    --ignore-table=hgcentral.assemblyList --ignore-table=hgcentral.asmAlias \
+    --ignore-table=hgcentral.genark --ignore-table=hgcentral.genarkOrg \
+    | gzip > "$BACKUP_DIR/.databases.tmp"
 mv "$BACKUP_DIR/.databases.tmp" "$BACKUP_DIR/databases-$STAMP.sql.gz"
 
 # custom track pointer files
