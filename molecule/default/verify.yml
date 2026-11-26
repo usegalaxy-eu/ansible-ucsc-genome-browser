@@ -48,6 +48,28 @@
             fail_msg: "One or more hg.conf settings are missing or incorrect."
           loop: "{{ ucsc_genome_browser_hg_conf_settings | dict2items }}"
 
+    - name: Ensure private hg.conf settings have been applied
+      become: true
+      block:
+        - name: Read hg.conf.private file
+          ansible.builtin.slurp:
+            src: "{{ ucsc_genome_browser_setting_CGIBINDIR }}/hg.conf.private"
+          register: hg_conf_private_slurp
+
+        - name: Stat hg.conf.private file
+          ansible.builtin.stat:
+            path: "{{ ucsc_genome_browser_setting_CGIBINDIR }}/hg.conf.private"
+          register: hg_conf_private_stat
+
+        - name: Assert hg.conf.private is included, readable only by Apache and holds the settings
+          ansible.builtin.assert:
+            that:
+              - hg_conf_decoded is search('^include hg.conf.private$', multiline=True)
+              - hg_conf_private_stat.stat.mode == "0640"
+              - hg_conf_private_stat.stat.gr_name == "apache"
+              - (hg_conf_private_slurp.content | b64decode) == "login.cookieSalt=molecule-salt\n"
+            fail_msg: "hg.conf.private is missing, not included, or has wrong permissions or content."
+
     - name: Ensure FreeType font support is enabled
       vars:
         freetype_dir_setting: "{{ hg_conf_decoded | regex_search('^freeTypeDir=(.+)$', '\\1', multiline=True) | first }}"

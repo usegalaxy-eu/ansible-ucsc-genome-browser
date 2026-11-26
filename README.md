@@ -134,6 +134,22 @@ short URLs for the API via Apache rewrite rules, so that the API endpoints
 cross-origin requests are allowed. For example, with short URLs enabled,
 `/list/ucscGenomes` answers the same as `/cgi-bin/hubApi/list/ucscGenomes`.
 
+Settings in `ucsc_genome_browser_hg_conf_private_settings` (empty by default)
+are written to `hg.conf.private`, which only Apache can read, and included
+from `hg.conf`. Use it for secrets. For example, to enable
+[OAuth login](https://genome.ucsc.edu/goldenPath/help/mirrorManual.html) with
+GitHub (redirect URI `https://<host>/cgi-bin/hgLogin`):
+
+```yaml
+ucsc_genome_browser_hg_conf_settings:
+  login.https: "on"
+  login.oauth.providers: github
+  login.oauth.github.clientId: Ov23xxxxxxxx
+ucsc_genome_browser_hg_conf_private_settings:
+  login.cookieSalt: "{{ vault_login_cookie_salt }}"  # long random string
+  login.oauth.github.clientSecret: "{{ vault_github_client_secret }}"
+```
+
 ## Dependencies
 
 The `community.general` collection.

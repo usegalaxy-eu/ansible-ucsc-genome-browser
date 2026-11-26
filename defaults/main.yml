@@ -62,3 +62,5 @@ ucsc_genome_browser_setting_APTERR: "{{ undef() }}"
 # ---- END GLOBAL SETTINGS ----
 ucsc_genome_browser_hg_conf_settings: {}
   # login.https: "on"  # the setup script sets this to "off", which breaks hgLogin over https
+ucsc_genome_browser_hg_conf_private_settings: {}  # secrets, written to hg.conf.private
+  # login.cookieSalt: "{{ vault_cookie_salt }}"
